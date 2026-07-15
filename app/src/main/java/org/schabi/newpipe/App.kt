@@ -1,5 +1,6 @@
 package org.schabi.newpipe
 
+import com.google.android.gms.cast.framework.CastContext
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
@@ -108,6 +109,12 @@ open class App :
         initNotificationChannels()
 
         ServiceHelper.initServices(this)
+
+        try {
+            CastContext.getSharedInstance(this)
+        } catch (e: Exception) {
+            Log.w(TAG, "Google Cast could not be initialized", e)
+        }
 
         // Initialize image loader
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
