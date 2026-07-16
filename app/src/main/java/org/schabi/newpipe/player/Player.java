@@ -2428,27 +2428,6 @@ public final class Player implements PlaybackListener, Listener {
         return currentMetadata;
     }
 
-    /**
-     * Starts casting the currently playing video.
-     *
-     * The actual Cast SDK loading will be handled by CastManager.
-     * This method only passes the current stream information.
-     */
-    public void castCurrentVideo() {
-        if (currentMetadata == null) {
-            Log.w(TAG, "Cannot cast: currentMetadata is null");
-            return;
-        }
-
-        getSelectedVideoStream().ifPresentOrElse(
-            videoStream -> {
-                Log.d(TAG, "Cast request: " + currentMetadata.getTitle());
-                Log.d(TAG, "Cast URL: " + videoStream.getContent());
-            },
-            () -> Log.w(TAG, "Cannot cast: no selected video stream")
-        );
-    }
-
     @Nullable
     public PlayQueueItem getCurrentItem() {
         return currentItem;
