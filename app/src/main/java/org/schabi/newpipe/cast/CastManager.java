@@ -3,7 +3,6 @@ package org.schabi.newpipe.cast;
 import android.app.Activity;
 import android.util.Log;
 
-
 import androidx.mediarouter.app.MediaRouteChooserDialog;
 import androidx.mediarouter.media.MediaRouteSelector;
 
@@ -18,9 +17,7 @@ public final class CastManager {
     
     private CastManager() {
     }
-
     public static void showChooser(final Activity activity) {
-
         final MediaRouteSelector selector =
                 new MediaRouteSelector.Builder()
                         .addControlCategory(
@@ -35,7 +32,6 @@ public final class CastManager {
         dialog.setRouteSelector(selector);
         dialog.show();
     }
-
     public static boolean hasConnectedSession(final Activity activity) {
 
         final CastContext castContext = CastContext.getSharedInstance(activity);
@@ -51,4 +47,4 @@ public final class CastManager {
         return connected;
     }
 }
-    
+  
