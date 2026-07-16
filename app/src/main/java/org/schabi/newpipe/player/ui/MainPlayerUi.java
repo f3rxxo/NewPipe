@@ -187,9 +187,7 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
         binding.getRoot().addOnLayoutChangeListener(this);
 
         binding.castButton.setOnClickListener(v -> {
-                getParentActivity().ifPresent(
-                        CastManager::showChooser
-                );
+            player.castCurrentVideo();
         });
 
         binding.moreOptionsButton.setOnLongClickListener(v -> {
