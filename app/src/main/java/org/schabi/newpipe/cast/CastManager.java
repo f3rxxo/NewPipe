@@ -14,7 +14,6 @@ import com.google.android.gms.cast.framework.SessionManager;
 public final class CastManager {
 
     private static final String TAG = CastManager.class.getSimpleName();
-    
     private CastManager() {
     }
     public static void showChooser(final Activity activity) {
@@ -47,4 +46,3 @@ public final class CastManager {
         return connected;
     }
 }
-  
