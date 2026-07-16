@@ -45,7 +45,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.exoplayer2.ui.SubtitleView;
 import com.google.android.exoplayer2.video.VideoSize;
 
-import org.schabi.newpipe.cast.CastManager;
 import org.schabi.newpipe.R;
 import org.schabi.newpipe.databinding.PlayerBinding;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
