@@ -1,19 +1,11 @@
 package org.schabi.newpipe.cast;
-import org.schabi.newpipe.extractor.stream.VideoStream;
-import org.schabi.newpipe.player.mediaitem.MediaItemTag;
 
 import android.app.Activity;
 import android.util.Log;
-import androidx.annotation.NonNull;
 
 import androidx.mediarouter.app.MediaRouteChooserDialog;
 import androidx.mediarouter.media.MediaRouteSelector;
 
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaLoadRequestData;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.framework.media.RemoteMediaClient;
-import com.google.android.gms.common.images.WebImage;
 import com.google.android.gms.cast.CastMediaControlIntent;
 import com.google.android.gms.cast.framework.CastContext;
 import com.google.android.gms.cast.framework.CastSession;
