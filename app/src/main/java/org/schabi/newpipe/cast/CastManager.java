@@ -15,7 +15,6 @@ import com.google.android.gms.cast.framework.SessionManager;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaLoadRequestData;
 import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaMetadata.MEDIA_TYPE_MOVIE;
 import com.google.android.gms.cast.framework.media.RemoteMediaClient;
 import com.google.android.gms.common.images.WebImage;
 
@@ -78,7 +77,7 @@ public final class CastManager {
         }
 
         final MediaMetadata metadata =
-                new MediaMetadata(MEDIA_TYPE_MOVIE);
+        new MediaMetadata();
 
         metadata.putString(MediaMetadata.KEY_TITLE, tag.getTitle());
         metadata.putString(MediaMetadata.KEY_SUBTITLE, tag.getUploaderName());
