@@ -2554,7 +2554,6 @@ public final class Player implements PlaybackListener, Listener {
     private long getCastStartPositionMs() {
         return exoPlayerIsNull() ? 0L : simpleExoPlayer.getCurrentPosition();
     }
-}
 
     public Optional<PlayerServiceEventListener> getFragmentListener() {
         return Optional.ofNullable(fragmentListener);
