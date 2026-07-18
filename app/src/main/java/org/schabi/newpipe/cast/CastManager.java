@@ -127,15 +127,27 @@ public final class CastManager {
      * Registers a listener that is notified when a Cast session starts/resumes/ends.
      * Callers should hold onto the listener instance and pass the same one to
      * {@link #unregisterSessionListener(Context, SessionManagerListener)} to avoid leaks.
+     *
+     * @param context  any context; used only to look up the shared {@link CastContext}
+     * @param listener the listener to notify of Cast session lifecycle events
      */
-    public static void registerSessionListener(final Context context,
-                                                final SessionManagerListener<CastSession> listener) {
+    public static void registerSessionListener(
+            final Context context,
+            final SessionManagerListener<CastSession> listener) {
         CastContext.getSharedInstance(context).getSessionManager()
                 .addSessionManagerListener(listener, CastSession.class);
     }
 
-    public static void unregisterSessionListener(final Context context,
-                                                  final SessionManagerListener<CastSession> listener) {
+    /**
+     * Unregisters a listener previously passed to
+     * {@link #registerSessionListener(Context, SessionManagerListener)}.
+     *
+     * @param context  any context; used only to look up the shared {@link CastContext}
+     * @param listener the listener instance to remove
+     */
+    public static void unregisterSessionListener(
+            final Context context,
+            final SessionManagerListener<CastSession> listener) {
         CastContext.getSharedInstance(context).getSessionManager()
                 .removeSessionManagerListener(listener, CastSession.class);
     }
