@@ -96,49 +96,7 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
 
     private ContentObserver settingsContentObserver;
 
-    private final SessionManagerListener<CastSession> castSessionListener =
-            new SessionManagerListener<CastSession>() {
-                @Override
-                public void onSessionStarted(final CastSession session, final String sessionId) {
-                    player.castCurrentVideo();
-                }
-
-                @Override
-                public void onSessionResumed(final CastSession session,
-                                              final boolean wasSuspended) {
-                    player.castCurrentVideo();
-                }
-
-                @Override
-                public void onSessionStarting(final CastSession session) {
-                }
-
-                @Override
-                public void onSessionStartFailed(final CastSession session, final int error) {
-                    Log.w(TAG, "Cast session start failed with error code " + error);
-                }
-
-                @Override
-                public void onSessionEnding(final CastSession session) {
-                }
-
-                @Override
-                public void onSessionEnded(final CastSession session, final int error) {
-                }
-
-                @Override
-                public void onSessionResuming(final CastSession session, final String sessionId) {
-                }
-
-                @Override
-                public void onSessionResumeFailed(final CastSession session, final int error) {
-                    Log.w(TAG, "Cast session resume failed with error code " + error);
-                }
-
-                @Override
-                public void onSessionSuspended(final CastSession session, final int reason) {
-                }
-            };
+    private SessionManagerListener<CastSession> castSessionListener;
 
     private PlayQueueAdapter playQueueAdapter;
     private StreamSegmentAdapter segmentAdapter;
@@ -241,6 +199,48 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
                     }
                 }));
 
+        castSessionListener = new SessionManagerListener<CastSession>() {
+            @Override
+            public void onSessionStarted(final CastSession session, final String sessionId) {
+                player.castCurrentVideo();
+            }
+
+            @Override
+            public void onSessionResumed(final CastSession session,
+                                          final boolean wasSuspended) {
+                player.castCurrentVideo();
+            }
+
+            @Override
+            public void onSessionStarting(final CastSession session) {
+            }
+
+            @Override
+            public void onSessionStartFailed(final CastSession session, final int error) {
+                Log.w(TAG, "Cast session start failed with error code " + error);
+            }
+
+            @Override
+            public void onSessionEnding(final CastSession session) {
+            }
+
+            @Override
+            public void onSessionEnded(final CastSession session, final int error) {
+            }
+
+            @Override
+            public void onSessionResuming(final CastSession session, final String sessionId) {
+            }
+
+            @Override
+            public void onSessionResumeFailed(final CastSession session, final int error) {
+                Log.w(TAG, "Cast session resume failed with error code " + error);
+            }
+
+            @Override
+            public void onSessionSuspended(final CastSession session, final int reason) {
+            }
+        };
         CastManager.registerSessionListener(context, castSessionListener);
 
         binding.moreOptionsButton.setOnLongClickListener(v -> {
@@ -263,7 +263,9 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
 
         context.getContentResolver().unregisterContentObserver(settingsContentObserver);
 
-        CastManager.unregisterSessionListener(context, castSessionListener);
+        if (castSessionListener != null) {
+            CastManager.unregisterSessionListener(context, castSessionListener);
+        }
 
         binding.getRoot().removeOnLayoutChangeListener(this);
     }
