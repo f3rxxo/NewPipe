@@ -2440,6 +2440,8 @@ public final class Player implements PlaybackListener, Listener {
      * normally selected stream (see {@link #getSelectedVideoStream()}) may be video-only when
      * adaptive (separate audio/video) streams were chosen for local ExoPlayer playback, which
      * would result in no audio on the receiver.
+     *
+     * @return a muxed (audio+video) stream, if one is available
      */
     private Optional<VideoStream> getCastableVideoStream() {
         return Optional.ofNullable(currentMetadata)
