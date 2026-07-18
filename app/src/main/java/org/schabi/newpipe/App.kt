@@ -1,6 +1,5 @@
 package org.schabi.newpipe
 
-import com.google.android.gms.cast.framework.CastContext
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
@@ -15,6 +14,7 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.allowRgb565
 import coil3.request.crossfade
 import coil3.util.DebugLogger
+import com.google.android.gms.cast.framework.CastContext
 import com.jakewharton.processphoenix.ProcessPhoenix
 import io.reactivex.rxjava3.exceptions.CompositeException
 import io.reactivex.rxjava3.exceptions.MissingBackpressureException
@@ -41,6 +41,7 @@ import org.schabi.newpipe.util.StateSaver
 import org.schabi.newpipe.util.image.ImageStrategy
 import org.schabi.newpipe.util.image.PreferredImageQuality
 import org.schabi.newpipe.util.potoken.PoTokenProviderImpl
+
 
 /*
  * Copyright (C) Hans-Christoph Steiner 2016 <hans@eds.org>
