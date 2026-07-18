@@ -2435,6 +2435,21 @@ public final class Player implements PlaybackListener, Listener {
     }
 
     /**
+     * Finds a video stream suitable for casting to the default Cast receiver, which can only
+     * play a single URL and therefore requires a stream that has audio muxed into it. The
+     * normally selected stream (see {@link #getSelectedVideoStream()}) may be video-only when
+     * adaptive (separate audio/video) streams were chosen for local ExoPlayer playback, which
+     * would result in no audio on the receiver.
+     */
+    private Optional<VideoStream> getCastableVideoStream() {
+        return Optional.ofNullable(currentMetadata)
+                .flatMap(MediaItemTag::getMaybeQuality)
+                .flatMap(quality -> quality.getSortedVideoStreams().stream()
+                        .filter(stream -> !stream.isVideoOnly())
+                        .findFirst());
+    }
+
+    /**
  * Starts casting the currently playing video.
  *
  * The actual Cast SDK loading will be handled by CastManager.
@@ -2446,7 +2461,13 @@ public void castCurrentVideo() {
         return;
     }
 
-    getSelectedVideoStream().ifPresentOrElse(
+    final Optional<VideoStream> castableStream = getCastableVideoStream();
+    if (castableStream.isEmpty()) {
+        Log.w(TAG, "No muxed (audio+video) stream available; "
+                + "casting may play without audio");
+    }
+
+    castableStream.or(this::getSelectedVideoStream).ifPresentOrElse(
             videoStream -> {
                 Log.d(TAG, "Cast request: " + currentMetadata.getTitle());
                 Log.d(TAG, "Cast URL: " + videoStream.getContent());
@@ -2473,6 +2494,10 @@ public void castCurrentVideo() {
                         currentMetadata.getUploaderName(),
                         imageUrl,
                         startPositionMs);
+
+                // Stop local playback so audio/video don't play on both the phone and the
+                // Cast receiver at the same time.
+                pause();
             },
             () -> Log.w(TAG, "Cannot cast: no selected video stream")
     );
