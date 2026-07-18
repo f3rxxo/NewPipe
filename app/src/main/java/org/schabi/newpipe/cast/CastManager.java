@@ -16,6 +16,7 @@ import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.framework.CastContext;
 import com.google.android.gms.cast.framework.CastSession;
 import com.google.android.gms.cast.framework.SessionManager;
+import com.google.android.gms.cast.framework.SessionManagerListener;
 import com.google.android.gms.cast.framework.media.RemoteMediaClient;
 import com.google.android.gms.common.images.WebImage;
 
@@ -120,5 +121,22 @@ public final class CastManager {
         }
 
         return session.getRemoteMediaClient();
+    }
+
+    /**
+     * Registers a listener that is notified when a Cast session starts/resumes/ends.
+     * Callers should hold onto the listener instance and pass the same one to
+     * {@link #unregisterSessionListener(Context, SessionManagerListener)} to avoid leaks.
+     */
+    public static void registerSessionListener(final Context context,
+                                                final SessionManagerListener<CastSession> listener) {
+        CastContext.getSharedInstance(context).getSessionManager()
+                .addSessionManagerListener(listener, CastSession.class);
+    }
+
+    public static void unregisterSessionListener(final Context context,
+                                                  final SessionManagerListener<CastSession> listener) {
+        CastContext.getSharedInstance(context).getSessionManager()
+                .removeSessionManagerListener(listener, CastSession.class);
     }
 }

@@ -42,10 +42,13 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.cast.framework.CastSession;
+import com.google.android.gms.cast.framework.SessionManagerListener;
 import com.google.android.exoplayer2.ui.SubtitleView;
 import com.google.android.exoplayer2.video.VideoSize;
 
 import org.schabi.newpipe.R;
+import org.schabi.newpipe.cast.CastManager;
 import org.schabi.newpipe.databinding.PlayerBinding;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
 import org.schabi.newpipe.extractor.stream.StreamSegment;
@@ -92,6 +95,50 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
     private boolean fragmentIsVisible = false;
 
     private ContentObserver settingsContentObserver;
+
+    private final SessionManagerListener<CastSession> castSessionListener =
+            new SessionManagerListener<CastSession>() {
+                @Override
+                public void onSessionStarted(final CastSession session, final String sessionId) {
+                    player.castCurrentVideo();
+                }
+
+                @Override
+                public void onSessionResumed(final CastSession session,
+                                              final boolean wasSuspended) {
+                    player.castCurrentVideo();
+                }
+
+                @Override
+                public void onSessionStarting(final CastSession session) {
+                }
+
+                @Override
+                public void onSessionStartFailed(final CastSession session, final int error) {
+                    Log.w(TAG, "Cast session start failed with error code " + error);
+                }
+
+                @Override
+                public void onSessionEnding(final CastSession session) {
+                }
+
+                @Override
+                public void onSessionEnded(final CastSession session, final int error) {
+                }
+
+                @Override
+                public void onSessionResuming(final CastSession session, final String sessionId) {
+                }
+
+                @Override
+                public void onSessionResumeFailed(final CastSession session, final int error) {
+                    Log.w(TAG, "Cast session resume failed with error code " + error);
+                }
+
+                @Override
+                public void onSessionSuspended(final CastSession session, final int reason) {
+                }
+            };
 
     private PlayQueueAdapter playQueueAdapter;
     private StreamSegmentAdapter segmentAdapter;
@@ -185,9 +232,16 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
 
         binding.getRoot().addOnLayoutChangeListener(this);
 
-        binding.castButton.setOnClickListener(v -> {
-            player.castCurrentVideo();
-        });
+        binding.castButton.setOnClickListener(v ->
+                getParentActivity().ifPresent(activity -> {
+                    if (CastManager.hasConnectedSession(activity)) {
+                        player.castCurrentVideo();
+                    } else {
+                        CastManager.showChooser(activity);
+                    }
+                }));
+
+        CastManager.registerSessionListener(context, castSessionListener);
 
         binding.moreOptionsButton.setOnLongClickListener(v -> {
             player.getFragmentListener()
@@ -205,8 +259,11 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
         binding.queueButton.setOnClickListener(null);
         binding.segmentsButton.setOnClickListener(null);
         binding.addToPlaylistButton.setOnClickListener(null);
+        binding.castButton.setOnClickListener(null);
 
         context.getContentResolver().unregisterContentObserver(settingsContentObserver);
+
+        CastManager.unregisterSessionListener(context, castSessionListener);
 
         binding.getRoot().removeOnLayoutChangeListener(this);
     }
