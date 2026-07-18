@@ -77,7 +77,7 @@ public final class CastManager {
         }
 
         final MediaMetadata metadata =
-        new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
+        new MediaMetadata();
 
         metadata.putString(MediaMetadata.KEY_TITLE, tag.getTitle());
         metadata.putString(MediaMetadata.KEY_SUBTITLE, tag.getUploaderName());
