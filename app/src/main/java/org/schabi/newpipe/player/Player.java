@@ -84,6 +84,7 @@ import com.google.android.exoplayer2.video.VideoSize;
 
 import org.schabi.newpipe.MainActivity;
 import org.schabi.newpipe.R;
+import org.schabi.newpipe.cast.CastManager;
 import org.schabi.newpipe.databinding.PlayerBinding;
 import org.schabi.newpipe.error.ErrorInfo;
 import org.schabi.newpipe.error.ErrorUtil;
@@ -2449,6 +2450,29 @@ public void castCurrentVideo() {
             videoStream -> {
                 Log.d(TAG, "Cast request: " + currentMetadata.getTitle());
                 Log.d(TAG, "Cast URL: " + videoStream.getContent());
+
+                final String contentType = videoStream.getFormat() != null
+                        ? videoStream.getFormat().getMimeType()
+                        : "video/mp4";
+
+                final String imageUrl = currentMetadata.getMaybeStreamInfo()
+                        .map(StreamInfo::getThumbnails)
+                        .filter(thumbnails -> !thumbnails.isEmpty())
+                        .map(thumbnails -> thumbnails.get(0).getUrl())
+                        .orElse(null);
+
+                final long startPositionMs = exoPlayerIsNull()
+                        ? 0L
+                        : simpleExoPlayer.getCurrentPosition();
+
+                CastManager.loadMedia(
+                        context,
+                        videoStream.getContent(),
+                        contentType,
+                        currentMetadata.getTitle(),
+                        currentMetadata.getUploaderName(),
+                        imageUrl,
+                        startPositionMs);
             },
             () -> Log.w(TAG, "Cannot cast: no selected video stream")
     );
