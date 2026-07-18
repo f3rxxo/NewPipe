@@ -85,6 +85,7 @@ import com.google.android.exoplayer2.video.VideoSize;
 import org.schabi.newpipe.MainActivity;
 import org.schabi.newpipe.R;
 import org.schabi.newpipe.cast.CastManager;
+import org.schabi.newpipe.cast.CastManifestBuilder;
 import org.schabi.newpipe.databinding.PlayerBinding;
 import org.schabi.newpipe.error.ErrorInfo;
 import org.schabi.newpipe.error.ErrorUtil;
@@ -256,6 +257,8 @@ public final class Player implements PlaybackListener, Listener {
     private final CompositeDisposable databaseUpdateDisposable = new CompositeDisposable();
     @NonNull
     private final CompositeDisposable streamItemDisposable = new CompositeDisposable();
+
+    private final SerialDisposable castDisposable = new SerialDisposable();
 
     /*//////////////////////////////////////////////////////////////////////////
     // Utils
@@ -698,6 +701,8 @@ public final class Player implements PlaybackListener, Listener {
         databaseUpdateDisposable.clear();
         progressUpdateDisposable.set(null);
         streamItemDisposable.clear();
+        castDisposable.set(null);
+        CastManager.stopLocalServer();
 
         UIs.destroyAll(Object.class); // destroy every UI: obviously every UI extends Object
     }
@@ -2452,57 +2457,103 @@ public final class Player implements PlaybackListener, Listener {
     }
 
     /**
- * Starts casting the currently playing video.
- *
- * The actual Cast SDK loading will be handled by CastManager.
- * This method only passes the current stream information.
- */
-public void castCurrentVideo() {
-    if (currentMetadata == null) {
-        Log.w(TAG, "Cannot cast: currentMetadata is null");
-        return;
+     * Starts casting the currently playing video.
+     *
+     * If a stream with audio muxed into the video is available, it's cast directly. Otherwise,
+     * since the default Cast receiver only accepts a single content URL, a combined DASH
+     * manifest referencing both the video-only and audio-only streams is built and served from
+     * a small local HTTP server so the receiver can fetch it and play both tracks together.
+     */
+    public void castCurrentVideo() {
+        if (currentMetadata == null) {
+            Log.w(TAG, "Cannot cast: currentMetadata is null");
+            return;
+        }
+
+        getCastableVideoStream().ifPresentOrElse(
+                this::castDirectStream,
+                this::castWithoutMuxedStream
+        );
     }
 
-    final Optional<VideoStream> castableStream = getCastableVideoStream();
-    if (castableStream.isEmpty()) {
+    private void castWithoutMuxedStream() {
+        final Optional<VideoStream> videoOnlyStream = getSelectedVideoStream();
+        final Optional<AudioStream> audioStream = currentMetadata.getMaybeAudioTrack()
+                .map(MediaItemTag.AudioTrack::getSelectedAudioStream);
+        final Optional<StreamInfo> streamInfo = currentMetadata.getMaybeStreamInfo();
+
+        if (videoOnlyStream.isEmpty() || audioStream.isEmpty() || streamInfo.isEmpty()) {
+            Log.w(TAG, "No muxed (audio+video) stream available, and missing video-only "
+                    + "stream, audio stream, or stream info needed to build a combined "
+                    + "manifest; casting may play without audio");
+            videoOnlyStream.ifPresentOrElse(
+                    this::castDirectStream,
+                    () -> Log.w(TAG, "Cannot cast: no selected video stream")
+            );
+            return;
+        }
+
         Log.w(TAG, "No muxed (audio+video) stream available; "
-                + "casting may play without audio");
+                + "building a combined manifest to cast with audio");
+
+        final VideoStream video = videoOnlyStream.get();
+        final AudioStream audio = audioStream.get();
+        final StreamInfo info = streamInfo.get();
+        final String title = currentMetadata.getTitle();
+        final String subtitle = currentMetadata.getUploaderName();
+        final String imageUrl = getCastImageUrl();
+        final long startPositionMs = getCastStartPositionMs();
+
+        castDisposable.set(Single.fromCallable(() -> {
+                    final String manifest = CastManifestBuilder.buildCombinedManifest(
+                            video, audio, info);
+                    CastManager.loadCombinedMedia(context, manifest, title, subtitle,
+                            imageUrl, startPositionMs);
+                    return true;
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        ignored -> pause(),
+                        throwable -> {
+                            Log.e(TAG, "Failed to cast combined audio+video manifest; "
+                                    + "falling back to video-only casting", throwable);
+                            castDirectStream(video);
+                        }));
     }
 
-    castableStream.or(this::getSelectedVideoStream).ifPresentOrElse(
-            videoStream -> {
-                Log.d(TAG, "Cast request: " + currentMetadata.getTitle());
-                Log.d(TAG, "Cast URL: " + videoStream.getContent());
+    private void castDirectStream(final VideoStream videoStream) {
+        Log.d(TAG, "Cast request: " + currentMetadata.getTitle());
+        Log.d(TAG, "Cast URL: " + videoStream.getContent());
 
-                final String contentType = videoStream.getFormat() != null
-                        ? videoStream.getFormat().getMimeType()
-                        : "video/mp4";
+        final String contentType = videoStream.getFormat() != null
+                ? videoStream.getFormat().getMimeType()
+                : "video/mp4";
 
-                final String imageUrl = currentMetadata.getMaybeStreamInfo()
-                        .map(StreamInfo::getThumbnails)
-                        .filter(thumbnails -> !thumbnails.isEmpty())
-                        .map(thumbnails -> thumbnails.get(0).getUrl())
-                        .orElse(null);
+        CastManager.loadMedia(
+                context,
+                videoStream.getContent(),
+                contentType,
+                currentMetadata.getTitle(),
+                currentMetadata.getUploaderName(),
+                getCastImageUrl(),
+                getCastStartPositionMs());
 
-                final long startPositionMs = exoPlayerIsNull()
-                        ? 0L
-                        : simpleExoPlayer.getCurrentPosition();
+        pause();
+    }
 
-                CastManager.loadMedia(
-                        context,
-                        videoStream.getContent(),
-                        contentType,
-                        currentMetadata.getTitle(),
-                        currentMetadata.getUploaderName(),
-                        imageUrl,
-                        startPositionMs);
+    @Nullable
+    private String getCastImageUrl() {
+        return currentMetadata.getMaybeStreamInfo()
+                .map(StreamInfo::getThumbnails)
+                .filter(thumbnails -> !thumbnails.isEmpty())
+                .map(thumbnails -> thumbnails.get(0).getUrl())
+                .orElse(null);
+    }
 
-                // Stop local playback so audio/video don't play on both the phone and the
-                // Cast receiver at the same time.
-                pause();
-            },
-            () -> Log.w(TAG, "Cannot cast: no selected video stream")
-    );
+    private long getCastStartPositionMs() {
+        return exoPlayerIsNull() ? 0L : simpleExoPlayer.getCurrentPosition();
+    }
 }
 
     public Optional<PlayerServiceEventListener> getFragmentListener() {

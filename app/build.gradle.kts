@@ -278,6 +278,7 @@ dependencies {
 
     // Media player
     implementation("com.google.android.gms:play-services-cast-framework:22.1.0")
+    implementation("org.nanohttpd:nanohttpd:2.3.1")
     implementation(libs.google.exoplayer.core)
     implementation(libs.google.exoplayer.dash)
     implementation(libs.google.exoplayer.database)

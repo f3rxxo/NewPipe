@@ -226,6 +226,7 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
 
             @Override
             public void onSessionEnded(final CastSession session, final int error) {
+                CastManager.stopLocalServer();
                 player.play();
             }
 
@@ -240,6 +241,7 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
 
             @Override
             public void onSessionSuspended(final CastSession session, final int reason) {
+                CastManager.stopLocalServer();
                 player.play();
             }
         };

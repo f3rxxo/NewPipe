@@ -20,9 +20,15 @@ import com.google.android.gms.cast.framework.SessionManagerListener;
 import com.google.android.gms.cast.framework.media.RemoteMediaClient;
 import com.google.android.gms.common.images.WebImage;
 
+import java.io.IOException;
+
 public final class CastManager {
 
     private static final String TAG = CastManager.class.getSimpleName();
+
+    @Nullable
+    private static CastLocalServer localServer;
+
     private CastManager() {
     }
     public static void showChooser(final Activity activity) {
@@ -150,5 +156,54 @@ public final class CastManager {
             final SessionManagerListener<CastSession> listener) {
         CastContext.getSharedInstance(context).getSessionManager()
                 .removeSessionManagerListener(listener, CastSession.class);
+    }
+
+    /**
+     * Serves the given combined (audio+video) DASH manifest from a local HTTP server and loads
+     * it on the currently connected Cast receiver. Any previously running local server is
+     * stopped first.
+     *
+     * @param context          any context; used only to look up the shared {@link CastContext}
+     * @param manifestContent  the combined DASH manifest XML to serve and cast
+     * @param title            title to show on the receiver UI
+     * @param subtitle         subtitle/uploader name to show on the receiver UI, may be null
+     * @param imageUrl         URL of an artwork/thumbnail image, may be null
+     * @param startPositionMs  position, in milliseconds, to start playback from
+     * @throws IOException if the local server could not be started, or no local network
+     *                      address could be found to serve the manifest from
+     */
+    public static void loadCombinedMedia(final Context context,
+                                          final String manifestContent,
+                                          final String title,
+                                          @Nullable final String subtitle,
+                                          @Nullable final String imageUrl,
+                                          final long startPositionMs) throws IOException {
+        stopLocalServer();
+
+        final CastLocalServer server = CastLocalServer.start(manifestContent);
+        final String manifestUrl = server.getManifestUrl();
+
+        if (manifestUrl == null) {
+            server.stop();
+            throw new IOException(
+                    "Could not determine a local network address to serve the manifest from");
+        }
+
+        localServer = server;
+
+        loadMedia(context, manifestUrl, "application/dash+xml", title, subtitle, imageUrl,
+                startPositionMs);
+    }
+
+    /**
+     * Stops the local manifest server started by
+     * {@link #loadCombinedMedia(Context, String, String, String, String, long)}, if running.
+     * Should be called once casting stops or the Cast session ends.
+     */
+    public static void stopLocalServer() {
+        if (localServer != null) {
+            localServer.stop();
+            localServer = null;
+        }
     }
 }
