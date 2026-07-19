@@ -10,9 +10,11 @@ import androidx.mediarouter.app.MediaRouteChooserDialog;
 import androidx.mediarouter.media.MediaRouteSelector;
 
 import com.google.android.gms.cast.CastMediaControlIntent;
+import com.google.android.gms.cast.MediaError;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaLoadRequestData;
 import com.google.android.gms.cast.MediaMetadata;
+import com.google.android.gms.cast.MediaStatus;
 import com.google.android.gms.cast.framework.CastContext;
 import com.google.android.gms.cast.framework.CastSession;
 import com.google.android.gms.cast.framework.SessionManager;
@@ -28,6 +30,11 @@ public final class CastManager {
 
     @Nullable
     private static CastLocalServer localServer;
+
+    @Nullable
+    private static RemoteMediaClient.Callback debugCallback;
+    @Nullable
+    private static RemoteMediaClient debugCallbackTarget;
 
     private CastManager() {
     }
@@ -112,7 +119,46 @@ public final class CastManager {
 
         Log.d(TAG, "Loading media on Cast receiver: " + title);
 
-        remoteMediaClient.load(requestData);
+        registerDebugCallback(remoteMediaClient);
+
+        remoteMediaClient.load(requestData).setResultCallback(result -> {
+            if (result.getStatus().isSuccess()) {
+                Log.d(TAG, "Cast load request succeeded");
+            } else {
+                Log.e(TAG, "Cast load request failed: " + result.getStatus());
+            }
+        });
+    }
+
+    /**
+     * Registers a callback that logs Cast playback status and errors reported by the receiver,
+     * replacing the previous registration (if any) so this stays a single active listener
+     * across repeated cast requests.
+     *
+     * @param remoteMediaClient the client to observe
+     */
+    private static void registerDebugCallback(final RemoteMediaClient remoteMediaClient) {
+        if (debugCallback != null && debugCallbackTarget != null) {
+            debugCallbackTarget.unregisterCallback(debugCallback);
+        }
+
+        debugCallback = new RemoteMediaClient.Callback() {
+            @Override
+            public void onStatusUpdated() {
+                final MediaStatus status = remoteMediaClient.getMediaStatus();
+                if (status != null) {
+                    Log.d(TAG, "Cast media status: playerState=" + status.getPlayerState()
+                            + ", idleReason=" + status.getIdleReason());
+                }
+            }
+
+            @Override
+            public void onMediaError(final MediaError mediaError) {
+                Log.e(TAG, "Cast media error: " + mediaError);
+            }
+        };
+        debugCallbackTarget = remoteMediaClient;
+        remoteMediaClient.registerCallback(debugCallback);
     }
 
     @Nullable

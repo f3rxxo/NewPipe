@@ -2507,6 +2507,7 @@ public final class Player implements PlaybackListener, Listener {
         castDisposable.set(Single.fromCallable(() -> {
                     final String manifest = CastManifestBuilder.buildCombinedManifest(
                             video, audio, info);
+                    Log.d(TAG, "Combined Cast manifest:\n" + manifest);
                     return CastManager.startLocalManifestServer(manifest);
                 })
                 .subscribeOn(Schedulers.io())
