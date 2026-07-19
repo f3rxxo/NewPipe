@@ -129,6 +129,10 @@ import org.schabi.newpipe.util.SerializedCache;
 import org.schabi.newpipe.util.StreamTypeUtil;
 import org.schabi.newpipe.util.image.CoilHelper;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -2507,7 +2511,7 @@ public final class Player implements PlaybackListener, Listener {
         castDisposable.set(Single.fromCallable(() -> {
                     final String manifest = CastManifestBuilder.buildCombinedManifest(
                             video, audio, info);
-                    Log.d(TAG, "Combined Cast manifest:\n" + manifest);
+                    writeDebugManifestFile(manifest);
                     return CastManager.startLocalManifestServer(manifest);
                 })
                 .subscribeOn(Schedulers.io())
@@ -2524,6 +2528,29 @@ public final class Player implements PlaybackListener, Listener {
                                     + "falling back to video-only casting", throwable);
                             castDirectStream(video);
                         }));
+    }
+
+    /**
+     * Writes the given manifest to a file in the app's external cache directory for debugging,
+     * so it can be inspected via {@code adb pull} without hitting logcat's per-line truncation.
+     * Failures are logged but otherwise ignored, since this is a debugging aid only.
+     *
+     * @param manifest the manifest content to write
+     */
+    private void writeDebugManifestFile(final String manifest) {
+        final File dir = context.getExternalCacheDir();
+        if (dir == null) {
+            Log.w(TAG, "Cannot write debug Cast manifest: no external cache dir available");
+            return;
+        }
+
+        final File file = new File(dir, "cast_manifest_debug.mpd");
+        try (FileOutputStream out = new FileOutputStream(file)) {
+            out.write(manifest.getBytes(StandardCharsets.UTF_8));
+            Log.d(TAG, "Wrote combined Cast manifest to " + file.getAbsolutePath());
+        } catch (final IOException e) {
+            Log.w(TAG, "Could not write debug Cast manifest file", e);
+        }
     }
 
     private void castDirectStream(final VideoStream videoStream) {
