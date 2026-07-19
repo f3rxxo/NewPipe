@@ -11,7 +11,6 @@ import org.schabi.newpipe.extractor.stream.VideoStream;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -19,7 +18,9 @@ import org.xml.sax.SAXException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -75,10 +76,26 @@ public final class CastManifestBuilder {
             final Element videoPeriod = getFirstElementByTagName(videoDoc, "Period");
             final Element audioPeriod = getFirstElementByTagName(audioDoc, "Period");
 
+            final Set<String> usedIds = collectAdaptationSetIds(videoPeriod);
+
             final NodeList audioAdaptationSets =
                     audioPeriod.getElementsByTagName("AdaptationSet");
+            int nextId = usedIds.size();
             for (int i = 0; i < audioAdaptationSets.getLength(); i++) {
-                final Node imported = videoDoc.importNode(audioAdaptationSets.item(i), true);
+                final Element imported = (Element) videoDoc.importNode(
+                        audioAdaptationSets.item(i), true);
+
+                // Each single-track manifest is generated independently and numbers its own
+                // AdaptationSet starting from 0, so IDs can collide once spliced together;
+                // AdaptationSet ids must be unique within a Period per the DASH spec.
+                if (usedIds.contains(imported.getAttribute("id"))) {
+                    while (usedIds.contains(String.valueOf(nextId))) {
+                        nextId++;
+                    }
+                    imported.setAttribute("id", String.valueOf(nextId));
+                }
+                usedIds.add(imported.getAttribute("id"));
+
                 videoPeriod.appendChild(imported);
             }
 
@@ -86,6 +103,15 @@ public final class CastManifestBuilder {
         } catch (final ParserConfigurationException | SAXException | TransformerException e) {
             throw new IOException("Could not combine video and audio DASH manifests", e);
         }
+    }
+
+    private static Set<String> collectAdaptationSetIds(final Element period) {
+        final Set<String> ids = new HashSet<>();
+        final NodeList adaptationSets = period.getElementsByTagName("AdaptationSet");
+        for (int i = 0; i < adaptationSets.getLength(); i++) {
+            ids.add(((Element) adaptationSets.item(i)).getAttribute("id"));
+        }
+        return ids;
     }
 
     private static Element getFirstElementByTagName(final Document document, final String tag)
