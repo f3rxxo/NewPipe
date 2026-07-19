@@ -159,25 +159,18 @@ public final class CastManager {
     }
 
     /**
-     * Serves the given combined (audio+video) DASH manifest from a local HTTP server and loads
-     * it on the currently connected Cast receiver. Any previously running local server is
-     * stopped first.
+     * Serves the given combined (audio+video) DASH manifest from a local HTTP server. Any
+     * previously running local server is stopped first. Safe to call from a background thread,
+     * unlike {@link #loadMedia(Context, String, String, String, String, String, long)}, which
+     * must be called from the main thread.
      *
-     * @param context          any context; used only to look up the shared {@link CastContext}
-     * @param manifestContent  the combined DASH manifest XML to serve and cast
-     * @param title            title to show on the receiver UI
-     * @param subtitle         subtitle/uploader name to show on the receiver UI, may be null
-     * @param imageUrl         URL of an artwork/thumbnail image, may be null
-     * @param startPositionMs  position, in milliseconds, to start playback from
+     * @param manifestContent the combined DASH manifest XML to serve
+     * @return the URL at which the manifest can be fetched from the Cast receiver
      * @throws IOException if the local server could not be started, or no local network
      *                      address could be found to serve the manifest from
      */
-    public static void loadCombinedMedia(final Context context,
-                                          final String manifestContent,
-                                          final String title,
-                                          @Nullable final String subtitle,
-                                          @Nullable final String imageUrl,
-                                          final long startPositionMs) throws IOException {
+    public static String startLocalManifestServer(final String manifestContent)
+            throws IOException {
         stopLocalServer();
 
         final CastLocalServer server = CastLocalServer.start(manifestContent);
@@ -190,15 +183,12 @@ public final class CastManager {
         }
 
         localServer = server;
-
-        loadMedia(context, manifestUrl, "application/dash+xml", title, subtitle, imageUrl,
-                startPositionMs);
+        return manifestUrl;
     }
 
     /**
-     * Stops the local manifest server started by
-     * {@link #loadCombinedMedia(Context, String, String, String, String, long)}, if running.
-     * Should be called once casting stops or the Cast session ends.
+     * Stops the local manifest server started by {@link #startLocalManifestServer(String)}, if
+     * running. Should be called once casting stops or the Cast session ends.
      */
     public static void stopLocalServer() {
         if (localServer != null) {

@@ -2507,14 +2507,17 @@ public final class Player implements PlaybackListener, Listener {
         castDisposable.set(Single.fromCallable(() -> {
                     final String manifest = CastManifestBuilder.buildCombinedManifest(
                             video, audio, info);
-                    CastManager.loadCombinedMedia(context, manifest, title, subtitle,
-                            imageUrl, startPositionMs);
-                    return true;
+                    return CastManager.startLocalManifestServer(manifest);
                 })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
-                        ignored -> pause(),
+                        manifestUrl -> {
+                            CastManager.loadMedia(context, manifestUrl,
+                                    "application/dash+xml", title, subtitle, imageUrl,
+                                    startPositionMs);
+                            pause();
+                        },
                         throwable -> {
                             Log.e(TAG, "Failed to cast combined audio+video manifest; "
                                     + "falling back to video-only casting", throwable);
