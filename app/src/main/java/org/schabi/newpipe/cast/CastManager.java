@@ -118,6 +118,7 @@ public final class CastManager {
                 .build();
 
         Log.d(TAG, "Loading media on Cast receiver: " + title);
+        Log.d(TAG, "Cast content URL: " + contentUrl);
 
         registerDebugCallback(remoteMediaClient);
 
