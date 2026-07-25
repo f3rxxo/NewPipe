@@ -99,6 +99,10 @@ public final class CastLocalServer extends NanoHTTPD {
      * Fetches the CDN URL given in the {@code url} query parameter and streams its response
      * back, forwarding the incoming {@code Range} header so seeking and segment-by-segment
      * fetches work the same as a direct request would.
+     *
+     * @param session the incoming request, expected to carry a {@code url} query parameter
+     * @return the proxied response, or an error response if the parameter is missing/invalid
+     *         or the upstream request fails
      */
     private Response serveProxiedSegment(final IHTTPSession session) {
         final Map<String, List<String>> params = session.getParameters();

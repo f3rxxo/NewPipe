@@ -118,6 +118,9 @@ public final class CastManifestBuilder {
      * third-party origins. Routing through our own local server means every request the
      * receiver makes is same-origin, and the actual CDN request happens server-to-server (via
      * {@link CastLocalServer}), where CORS doesn't apply.
+     *
+     * @param document the manifest document to rewrite in place
+     * @throws IOException if a BaseURL's text could not be URL-encoded
      */
     private static void rewriteBaseUrlsToProxy(final Document document) throws IOException {
         final NodeList baseUrls = document.getElementsByTagName("BaseURL");
