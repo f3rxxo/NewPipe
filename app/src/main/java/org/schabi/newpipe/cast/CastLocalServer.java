@@ -157,7 +157,7 @@ public final class CastLocalServer extends NanoHTTPD {
             if (connection != null) {
                 connection.disconnect();
             }
-            return newFixedLengthResponse(Response.Status.BAD_GATEWAY, MIME_PLAINTEXT,
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT,
                     "Upstream request failed");
         }
     }
