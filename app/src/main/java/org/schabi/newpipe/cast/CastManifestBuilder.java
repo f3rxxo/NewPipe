@@ -18,6 +18,9 @@ import org.xml.sax.SAXException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -99,9 +102,34 @@ public final class CastManifestBuilder {
                 videoPeriod.appendChild(imported);
             }
 
+            rewriteBaseUrlsToProxy(videoDoc);
+
             return serialize(videoDoc);
         } catch (final ParserConfigurationException | SAXException | TransformerException e) {
             throw new IOException("Could not combine video and audio DASH manifests", e);
+        }
+    }
+
+    /**
+     * Rewrites every {@code BaseURL} in the document to point at our own local proxy endpoint
+     * instead of the original CDN URL directly. The Cast receiver's DASH player fetches every
+     * segment via {@code fetch()}/XHR from whatever origin the manifest points to; pointing it
+     * at the CDN directly can be blocked by CORS, since that CDN isn't scoped to allow arbitrary
+     * third-party origins. Routing through our own local server means every request the
+     * receiver makes is same-origin, and the actual CDN request happens server-to-server (via
+     * {@link CastLocalServer}), where CORS doesn't apply.
+     */
+    private static void rewriteBaseUrlsToProxy(final Document document) throws IOException {
+        final NodeList baseUrls = document.getElementsByTagName("BaseURL");
+        for (int i = 0; i < baseUrls.getLength(); i++) {
+            final Element baseUrl = (Element) baseUrls.item(i);
+            final String original = baseUrl.getTextContent().trim();
+            try {
+                final String encoded = URLEncoder.encode(original, StandardCharsets.UTF_8.name());
+                baseUrl.setTextContent("/proxy?url=" + encoded);
+            } catch (final UnsupportedEncodingException e) {
+                throw new IOException("Could not rewrite BaseURL for proxying", e);
+            }
         }
     }
 
