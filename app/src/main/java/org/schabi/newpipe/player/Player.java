@@ -2480,7 +2480,27 @@ public final class Player implements PlaybackListener, Listener {
         );
     }
 
+    /**
+     * TEMPORARY DEBUG FLAG: when true, casting loads a known-good, publicly-hosted HTTPS DASH
+     * manifest instead of our own locally-generated one. If this plays fine (with audio) on the
+     * receiver, it proves the receiver/DASH-loading path itself is fine, and the failure is
+     * specific to serving the manifest from our local plaintext HTTP server (most likely a
+     * mixed-content block, since the Cast receiver page is loaded over HTTPS). If it fails the
+     * same way, the problem lies elsewhere. Remove this once the real issue is confirmed.
+     */
+    private static final boolean CAST_DEBUG_USE_REMOTE_TEST_MANIFEST = true;
+    private static final String CAST_DEBUG_TEST_MANIFEST_URL =
+            "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd";
+
     private void castWithoutMuxedStream() {
+        if (CAST_DEBUG_USE_REMOTE_TEST_MANIFEST) {
+            Log.w(TAG, "CAST DEBUG: loading public test manifest instead of local one");
+            CastManager.loadMedia(context, CAST_DEBUG_TEST_MANIFEST_URL,
+                    "application/dash+xml", "Cast debug test", null, null, 0L);
+            pause();
+            return;
+        }
+
         final Optional<VideoStream> videoOnlyStream = getSelectedVideoStream();
         final Optional<AudioStream> audioStream = currentMetadata.getMaybeAudioTrack()
                 .map(MediaItemTag.AudioTrack::getSelectedAudioStream);
